@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Loading...</title>
+</head>
+<body>
+    <h2>Silakan tunggu, halaman sedang dimuat...</h2>
+    <script>
+        fetch('/log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_agent: navigator.userAgent })
+        });
+    </script>
+</body>
+</html>
